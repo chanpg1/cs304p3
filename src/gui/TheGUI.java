@@ -2,7 +2,8 @@ package gui;
 
 //We need to import the java.sql package to use JDBC
 import java.sql.*;
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
 //for reading from the command line
 import java.io.*;
 
@@ -12,6 +13,8 @@ import javax.swing.*;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
+
+import tableOperations.branch;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -44,6 +47,8 @@ public class TheGUI implements ActionListener {
     //The transaction classes
     private LibrarianTransactions libTrans;
     
+    //Constants
+    private final static int DAY_IN_MILLISECS = 1000 * 60 * 60 * 24; //number of milliseconds in a day, used for computing due date with Java Date object
 
     /*
      * constructs login window and loads JDBC driver
@@ -267,6 +272,10 @@ public class TheGUI implements ActionListener {
     //to refactor later
     public void createLibrarianPanel(){
     	JButton addBookButton = new JButton("Add a book");
+    	JButton printBorrowingsButton = new JButton("Print all borrowings");
+    	JButton getPopularBooksButton = new JButton("Show popular books");
+    	
+    	//add listener for Add Book button
     	addBookButton.addActionListener(new ActionListener()
         {            
 			@Override
@@ -344,9 +353,163 @@ public class TheGUI implements ActionListener {
 				 
 			}
           });
-    	librarianPanel.add(addBookButton, BorderLayout.LINE_START);
+    	
+    	//add listener for Print Borrowings button
+    	/*
+    	 * Generate a report with all the books that have been checked out. 
+    	 * For each book the report shows the date it was checked out and the due date. 
+    	 * The system flags the items that are overdue. The items are ordered by the book call number.  
+    	 * If a subject is provided the report lists only books related to that subject, otherwise all the books that are out are listed by the report.	
+    	*/
+    	printBorrowingsButton.addActionListener(new ActionListener()
+        {
+    		ResultSet rs = null;
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				JPanel myPanel = new JPanel();
+				myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+				JTextField subject = new JTextField(5);
+			    myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			    myPanel.add(new JLabel("Subject (optional, leave blank to include all subjects):"));
+			    myPanel.add(subject);
 
+			    int result = JOptionPane.showConfirmDialog(null, myPanel, 
+			               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+			    try{
+				     if (result == JOptionPane.OK_OPTION) {
+				    	 rs = libTrans.generateBorrowingsReport(subject.getText());
+				     }
+				     DefaultTableModel tModel = borrowingsRSToTableModel(new DefaultTableModel(), rs);
+				     buildTable(tModel);
+			     }
+			     catch (NumberFormatException ex){
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } catch (SQLException ex) {
+			    	System.out.println("Message: " + ex.getMessage());
+
+			        try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+					System.out.println("Message: " + ex2.getMessage());
+					System.exit(-1);		
+				    }
+				}
+			} 
+    		
+        });
+    	
+    	//add listener for Add Book button
+    	getPopularBooksButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField topN = new JTextField(5);
+				ResultSet rs = null;
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("Enter the number of top hits you wish to see: (leave blank for 10)"));
+			     myPanel.add(topN);			     
+			     
+			     int result = JOptionPane.showConfirmDialog(null, myPanel, 
+			               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+			     try{
+				     if (result == JOptionPane.OK_OPTION) {
+				    	 if(topN.getText().length() > 0)
+				    		 rs = libTrans.booksByPopularity(Integer.parseInt(topN.getText()));
+				    	 else	//if nothing was entered
+				    		 rs = libTrans.booksByPopularity(10);
+					     DefaultTableModel tModel = topBooksRSToTableModel(new DefaultTableModel(), rs);
+				    	 buildTable(tModel);
+				     }
+			     }
+			     catch (NumberFormatException ex){
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     }
+			     catch (SQLException ex) {
+				    	System.out.println("Message: " + ex.getMessage());
+			     }
+				 
+			}
+          });
+    	
+    	librarianPanel.add(addBookButton);
+    	librarianPanel.add(printBorrowingsButton);
+    	librarianPanel.add(getPopularBooksButton);
     }
+    
+    /*Helper for printBorrowingsButton: Converts the resultSet from libTrans.generateBorrowingsReport() into a table model*/
+    DefaultTableModel borrowingsRSToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
+    {    	   	
+    	ResultSetMetaData meta= row.getMetaData();
+	    if(model==null) model= new DefaultTableModel();
+	    String cols[]=new String[meta.getColumnCount()+1]; //+1 because we're not using the last RS column, but will be adding two extra columns of our own at the end
+	    for(int i=0;i< cols.length-2;++i)  //length-2 because discarding last column of RS (booktimelimit)
+	    	{
+	    		cols[i]= meta.getColumnLabel(i+1);
+	    	}
+	    	cols[cols.length-2] = "Due on";  //Set second last column's label to "Due on"
+	    	cols[cols.length-1] = "Overdue?";  //Set second last column's label to "Overdue?"
+	    	model.setColumnIdentifiers(cols);
+	
+		while(row.next()){
+				Object data[]= new Object[cols.length];
+				
+				//For the given row, fetch data from every RS column except the last.
+				//This leaves the last 2 table columns empty
+				for(int i=0;i< data.length-2;++i){
+			    		data[i]=row.getObject(i+1);
+			   	}
+				
+				//For the second last table column, calculate and output dueDate based on booktimelimit
+				SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyy-MM-dd" );
+				Date currentDate = new Date();
+				Date outDate = row.getDate("Out");
+				int timelimit = row.getInt("booktimelimit") * DAY_IN_MILLISECS; //converts timelimit from days to milliseconds
+				Date dueDate = new Date(outDate.getTime() + timelimit);
+				data[cols.length-2]	=  dateFormat.format(dueDate); //formats dueDate to specified format
+				
+				//For the very last table column, determine if borrowing is overdue
+				if(dueDate.getTime() < currentDate.getTime()){ //if current time is bigger than dueDate's time, then dueDate's already passed, and item is overdue
+					data[cols.length-1] = true;
+				}
+				else{
+					data[cols.length-1] = false;
+				}
+					
+				model.addRow(data);
+		}
+		return model;
+	}
+    
+    /*Helper for buildTable: Converts a Top Books resultSet into a table model*/
+    DefaultTableModel topBooksRSToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
+    {
+	    ResultSetMetaData meta= row.getMetaData();
+	    if(model==null) model= new DefaultTableModel();
+	    String cols[]=new String[meta.getColumnCount()];
+	    cols[0] = "Call Number";
+	    cols[1] = "Title";
+	    cols[2] = "No. Borrowings";
+	
+	    model.setColumnIdentifiers(cols);
+	
+		while(row.next()){
+				Object data[]= new Object[cols.length];
+				for(int i=0;i< data.length;++i){
+			    		data[i]=row.getObject(i+1);
+			   	}
+					model.addRow(data);
+		}
+		return model;
+	}
     
     /*Helper for buildTable: Converts a resultSet into a table model*/
     DefaultTableModel resultSetToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
@@ -388,7 +551,17 @@ public class TheGUI implements ActionListener {
         tablePanel.add(tableScrollPane);        
         mainWindow.pack();
     }
-
+    
+    //build and display a table based on a given Table Model
+    public void buildTable(DefaultTableModel tModel){   	  	
+		//Clear Scroll Panel and update with new table
+        tableScrollPane.removeAll();
+        tablePanel.removeAll();
+        table = new JTable(tModel);    
+        tableScrollPane = new JScrollPane(table);
+        tablePanel.add(tableScrollPane);        
+        mainWindow.pack();
+    }
     class MainFrame extends JFrame
     {
         public MainFrame(String title)

@@ -99,6 +99,61 @@ public class LibrarianTransactions {
 		return false;		
 	}
 	
+	/*
+	 * Generate a report of all books that are on loan. Filters by subject if it is provided
+	 * For each book the report returns the callNum, the check-out date, the borid, the title, and the time limit for that loan in days   
+	 */
+	public ResultSet generateBorrowingsReport(String subject){
+		ResultSet rs = null;
+		PreparedStatement ps;
+		try{
+			if(subject.length()==0){
+				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, borid, outdate AS Out, Btype.booktimelimit " +
+											"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype " +
+											"WHERE Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type " +
+											"ORDER BY Bk.callnumber");
+			}
+			else{
+				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, borid, subject, outdate AS Out, Btype.booktimelimit " +
+						"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype, hassubject Subj " +
+						"WHERE Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type AND " +
+						"UPPER(Subj.subject) LIKE '%" + subject.toUpperCase() + "%' AND Subj.callNumber = Bwg.callNumber " +
+								"ORDER BY Bk.callnumber");
+			}
+			rs = ps.executeQuery();			
+		}
+		catch (SQLException e) {
+			System.out.println("Message: " + e.getMessage());
+			e.printStackTrace();
+		}			
+		return rs;
+	}
 	
+	/*
+	 * Generate a report with the most popular items in a given year.  
+	 * The librarian provides a year and a number n. 
+	 * The system lists out the top n books that where borrowed the most times during that year. 
+	 * The books are ordered by the number of times they were borrowed.
+	 */
+	public ResultSet booksByPopularity(int topN){
+		ResultSet rs = null;
+		PreparedStatement ps;
+		try{
+			ps = con.prepareStatement("SELECT TopBooks.callnumber, bk2.title, numborrowings " +
+										"FROM (SELECT Bk.callnumber, count(Bwg.borid) AS NUMBORROWINGS " +
+												"FROM borrowing Bwg, book Bk " +
+												"WHERE Bk.callNumber = Bwg.callNumber " +
+												"GROUP BY Bk.callnumber " +
+												"ORDER BY count(BWG.BORID) DESC) TopBooks, " +
+												"book Bk2 " +
+										"WHERE Bk2.callNumber = TopBooks.callNumber AND ROWNUM <= " + topN);	//take the top N rows		
+			rs = ps.executeQuery();			
+		}
+		catch (SQLException e) {
+			System.out.println("Message: " + e.getMessage());
+			e.printStackTrace();
+		}			
+		return rs;
+	}
 	
 }

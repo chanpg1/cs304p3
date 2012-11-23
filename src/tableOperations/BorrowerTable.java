@@ -62,6 +62,7 @@ public class BorrowerTable
  			ps.setString(6, emailAddress); 		  
  			ps.setInt(7, sinOrStNo);
  			ps.setDate(8, expiryDate);
+ 			ps.setString(9, type);
 
  			ps.executeUpdate();
 
