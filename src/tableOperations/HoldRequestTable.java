@@ -11,7 +11,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 /*
  * This class implements a graphical login window and a simple text
  * interface for interacting with the branch table 
@@ -46,19 +45,18 @@ public class HoldRequestTable
     /*
      * inserts a hold request
      */ 
- 	public void insertHoldRequest(int hid, int bid, String callNumber, Date issuedDate)
+ 	public void insertHoldRequest(int bid, String callNumber, Date issuedDate)
  	{ 	 		 
  		 		
  		PreparedStatement ps;
 
  		try
  		{
- 			ps = con.prepareStatement("INSERT INTO HoldRequest VALUES (?,?,?,?)");
+ 			ps = con.prepareStatement("INSERT INTO HoldRequest VALUES (hid_counter.nextval,?,?,?)");
 
- 			ps.setInt(1, hid);
- 			ps.setInt(2, bid);
- 			ps.setString(3, callNumber);
- 			ps.setDate(4, issuedDate);
+ 			ps.setInt(1, bid);
+ 			ps.setString(2, callNumber);
+ 			ps.setDate(3, issuedDate);
 
  			ps.executeUpdate();
 

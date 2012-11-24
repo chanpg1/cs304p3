@@ -14,7 +14,8 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
-import tableOperations.branch;
+//import the exceptions
+import exceptions.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -46,6 +47,7 @@ public class TheGUI implements ActionListener {
     private JScrollPane tableScrollPane;
     //The transaction classes
     private LibrarianTransactions libTrans;
+    private BorrowerTransactions borTrans;
     
     //Constants
     private final static int DAY_IN_MILLISECS = 1000 * 60 * 60 * 24; //number of milliseconds in a day, used for computing due date with Java Date object
@@ -143,8 +145,9 @@ public class TheGUI implements ActionListener {
       }
       catch (SQLException ex)
       {
-		System.out.println("Message: " + ex.getMessage());
-		System.exit(-1);
+    	  JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+    	  System.out.println("Message: " + ex.getMessage());
+    	  System.exit(-1);
       }
     }
 
@@ -165,8 +168,9 @@ public class TheGUI implements ActionListener {
       }
       catch (SQLException ex)
       {
-		System.out.println("Message: " + ex.getMessage());
-		return false;
+    	  JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);	
+    	  System.out.println("Message: " + ex.getMessage());
+    	  return false;
       }
     }
 
@@ -183,6 +187,7 @@ public class TheGUI implements ActionListener {
 	  mainFrame.dispose();
       showWindow();
       libTrans = new LibrarianTransactions(con);
+      borTrans = new BorrowerTransactions(con);
 	}
 	else
 	{
@@ -265,7 +270,70 @@ public class TheGUI implements ActionListener {
     
     //Creates the Borrower tab
     public void createBorrowerPanel(){
+    	JButton placeHoldButton = new JButton("Place hold");
     	
+    	//add listener for Place Hold button
+    	placeHoldButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField bid = new JTextField(5);
+				JTextField callNumber = new JTextField(5);
+				
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("Borrower ID (bid):"));
+			     myPanel.add(bid);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Call Number:"));
+			     myPanel.add(callNumber);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer			    
+			     
+			     int result = JOptionPane.showConfirmDialog(null, myPanel, 
+			               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+			     try{
+				     if (result == JOptionPane.OK_OPTION) {
+				    	 borTrans.holdOutBook(Integer.parseInt(bid.getText()), callNumber.getText());
+				     }
+				     Statement stmt = con.createStatement();
+				     ResultSet rs = stmt.executeQuery("SELECT * FROM holdRequest");
+				     buildTable(rs);
+			     }
+			     catch (bookAvailableException ex){
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			     }
+			     catch (bookNotExistsException ex){
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			     }
+			     catch (bidNotExistsException ex){
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", 1);
+			    	 System.out.println("Invalid input: " + ex.getMessage() + "\nPlease try again\n");
+			     } 
+			     catch (SQLException ex) {
+			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	System.out.println("Message: " + ex.getMessage());
+
+			        try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);	
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
+				    }
+				}
+				 
+			}
+          });
+    	
+    	borrowerPanel.add(placeHoldButton);
     }
     
     //Creates the Librarian tab
@@ -335,10 +403,12 @@ public class TheGUI implements ActionListener {
 				     buildTable(rs);
 			     }
 			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be added", 1);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     } catch (SQLException ex) {
-			    	System.out.println("Message: " + ex.getMessage());
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	 System.out.println("Message: " + ex.getMessage());
 
 			            try 
 				    {
@@ -346,8 +416,9 @@ public class TheGUI implements ActionListener {
 				    }
 				    catch (SQLException ex2)
 				    {
-					System.out.println("Message: " + ex2.getMessage());
-					System.exit(-1);		
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
 				    }
 				}
 				 
@@ -384,10 +455,12 @@ public class TheGUI implements ActionListener {
 				     buildTable(tModel);
 			     }
 			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", 1);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     } catch (SQLException ex) {
-			    	System.out.println("Message: " + ex.getMessage());
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	 System.out.println("Message: " + ex.getMessage());
 
 			        try 
 				    {
@@ -395,15 +468,16 @@ public class TheGUI implements ActionListener {
 				    }
 				    catch (SQLException ex2)
 				    {
-					System.out.println("Message: " + ex2.getMessage());
-					System.exit(-1);		
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);
+						System.out.println("Message: " + ex2.getMessage());
+						System.exit(-1);		
 				    }
 				}
 			} 
     		
         });
     	
-    	//add listener for Add Book button
+    	//add listener for Get Popular Books button
     	getPopularBooksButton.addActionListener(new ActionListener()
         {            
 			@Override
@@ -430,11 +504,13 @@ public class TheGUI implements ActionListener {
 				     }
 			     }
 			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", 1);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     }
 			     catch (SQLException ex) {
-				    	System.out.println("Message: " + ex.getMessage());
+			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+				    System.out.println("Message: " + ex.getMessage());
 			     }
 				 
 			}
@@ -540,6 +616,7 @@ public class TheGUI implements ActionListener {
 		try {
 			tModel = resultSetToTableModel(new DefaultTableModel(),rs);
 		} catch (SQLException e1) {
+			JOptionPane.showMessageDialog(null, "SQL Error:\n " + e1.getMessage() + "\nPlease try again", "Error Detected", 1);
 			System.out.println(e1.getMessage());
 			e1.printStackTrace();
 		}  	  	
