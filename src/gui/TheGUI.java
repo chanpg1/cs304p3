@@ -1088,22 +1088,29 @@ public class TheGUI implements ActionListener {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 
+				JTextField year = new JTextField(5);
 				JTextField topN = new JTextField(5);
 				ResultSet rs = null;
 		
 			     JPanel myPanel = new JPanel();
 			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
 			     myPanel.add(new JLabel("Enter the number of top hits you wish to see: (leave blank for 10)"));
-			     myPanel.add(topN);			     
+			     myPanel.add(topN);	
+			     myPanel.add(new JLabel("Enter the year: (leave blank to show all-time top hits)"));
+			     myPanel.add(year);	
 			     
 			     int result = JOptionPane.showConfirmDialog(null, myPanel, 
 			               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
 			     try{
-				     if (result == JOptionPane.OK_OPTION) {
+				     int inputYear = -1;
+				     if(!year.getText().isEmpty()){
+				    	 inputYear = Integer.parseInt(year.getText());
+				     }
+			    	 if (result == JOptionPane.OK_OPTION) {
 				    	 if(topN.getText().length() > 0)
-				    		 rs = libTrans.booksByPopularity(Integer.parseInt(topN.getText()));
+				    		 rs = libTrans.booksByPopularity(Integer.parseInt(topN.getText()), inputYear );
 				    	 else	//if nothing was entered
-				    		 rs = libTrans.booksByPopularity(10);
+				    		 rs = libTrans.booksByPopularity(10, inputYear);
 					     DefaultTableModel tModel = topBooksRSToTableModel(new DefaultTableModel(), rs);				    	 					     
 					     buildTable("Most Popular Books", tModel);
 				     }

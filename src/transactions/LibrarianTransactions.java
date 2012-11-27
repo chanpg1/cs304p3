@@ -140,18 +140,33 @@ public class LibrarianTransactions {
 	 * The system lists out the top n books that where borrowed the most times during that year. 
 	 * The books are ordered by the number of times they were borrowed.
 	 */
-	public ResultSet booksByPopularity(int topN){
+	public ResultSet booksByPopularity(int topN, int year){
 		ResultSet rs = null;
 		PreparedStatement ps;
 		try{
-			ps = con.prepareStatement("SELECT TopBooks.callnumber, bk2.title, numborrowings " +
-										"FROM (SELECT Bk.callnumber, count(Bwg.borid) AS NUMBORROWINGS " +
-												"FROM borrowing Bwg, book Bk " +
-												"WHERE Bk.callNumber = Bwg.callNumber " +
-												"GROUP BY Bk.callnumber " +
-												"ORDER BY count(BWG.BORID) DESC) TopBooks, " +
-												"book Bk2 " +
-										"WHERE Bk2.callNumber = TopBooks.callNumber AND ROWNUM <= " + topN);	//take the top N rows		
+			//if year == -1, return top N books from all time
+			if(year == -1){
+				ps = con.prepareStatement("SELECT TopBooks.callnumber, bk2.title, numborrowings " +
+						"FROM (SELECT Bk.callnumber, count(Bwg.borid) AS NUMBORROWINGS " +
+								"FROM borrowing Bwg, book Bk " +
+								"WHERE Bk.callNumber = Bwg.callNumber " +
+								"GROUP BY Bk.callnumber " +
+								"ORDER BY count(BWG.BORID) DESC) TopBooks, " +
+								"book Bk2 " +
+						"WHERE Bk2.callNumber = TopBooks.callNumber AND ROWNUM <= " + topN);	//take the top N rows
+			}
+			//otherwise, return top N books from year specified
+			else{
+				ps = con.prepareStatement("SELECT TopBooks.callnumber, bk2.title, numborrowings " +
+						"FROM (SELECT Bk.callnumber, count(Bwg.borid) AS NUMBORROWINGS " +
+								"FROM borrowing Bwg, book Bk " +
+								"WHERE Bk.callNumber = Bwg.callNumber AND to_char(Bwg.outdate, 'yyyy') = '"+year+"' " +
+								"GROUP BY Bk.callnumber " +
+								"ORDER BY count(BWG.BORID) DESC) TopBooks, " +
+								"book Bk2 " +
+						"WHERE Bk2.callNumber = TopBooks.callNumber AND ROWNUM <= " + topN);	//take the top N rows	
+			}
+	
 			rs = ps.executeQuery();			
 		}
 		catch (SQLException e) {
