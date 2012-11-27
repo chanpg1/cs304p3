@@ -46,23 +46,22 @@ public class BorrowerTable
     /*
      * inserts a borrower
      */ 
- 	public void insertBorrower(int bid, String password, String name, String address, int phone, String emailAddress, int sinOrStNo, Date expiryDate, String type)
+ 	public void insertBorrower(String password, String name, String address, Long phone, String emailAddress, int sinOrStNo, Date expiryDate, String type)
  	{ 	
  		PreparedStatement ps;
 
  		try
  		{
- 			ps = con.prepareStatement("INSERT INTO Borrower VALUES (?,?,?,?,?,?,?,?,?)");
+ 			ps = con.prepareStatement("INSERT INTO Borrower VALUES (bid_counter.nextval,?,?,?,?,?,?,?,?)");
 
- 			ps.setInt(1, bid);
- 			ps.setString(2, password);
- 			ps.setString(3, name);
- 			ps.setString(4, address);
- 			ps.setInt(5, phone);
- 			ps.setString(6, emailAddress); 		  
- 			ps.setInt(7, sinOrStNo);
- 			ps.setDate(8, expiryDate);
- 			ps.setString(9, type);
+ 			ps.setString(1, password);
+ 			ps.setString(2, name);
+ 			ps.setString(3, address);
+ 			ps.setLong(4, phone);
+ 			ps.setString(5, emailAddress); 		  
+ 			ps.setInt(6, sinOrStNo);
+ 			ps.setDate(7, expiryDate);
+ 			ps.setString(8, type);
 
  			ps.executeUpdate();
 

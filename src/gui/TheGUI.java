@@ -3,6 +3,8 @@ package gui;
 //We need to import the java.sql package to use JDBC
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 //for reading from the command line
 import java.io.*;
@@ -43,15 +45,22 @@ public class TheGUI implements ActionListener {
     private JPanel clerkPanel;
     private JPanel borrowerPanel;
     private JTable table;
+	private JTable table2;
+	private JTable table3;
     private JPanel tablePanel;
+	private JPanel tablePanel2;
+	private JPanel tablePanel3;
     private JScrollPane tableScrollPane;
+	private JScrollPane tableScrollPane2;
+	private JScrollPane tableScrollPane3;
     //The transaction classes
     private LibrarianTransactions libTrans;
     private BorrowerTransactions borTrans;
+    private ClerkTransactions clkTrans;
     
     //Constants
     private final static int DAY_IN_MILLISECS = 1000 * 60 * 60 * 24; //number of milliseconds in a day, used for computing due date with Java Date object
-
+    private final static int YEAR_IN_MILLISECS = 1000 * 60 * 60 * 24*365;
     /*
      * constructs login window and loads JDBC driver
      */ 
@@ -188,6 +197,7 @@ public class TheGUI implements ActionListener {
       showWindow();
       libTrans = new LibrarianTransactions(con);
       borTrans = new BorrowerTransactions(con);
+      clkTrans = new ClerkTransactions(con);
 	}
 	else
 	{
@@ -222,13 +232,21 @@ public class TheGUI implements ActionListener {
         librarianPanel = new JPanel();
         librarianPanel.setLayout(new BoxLayout(librarianPanel, BoxLayout.Y_AXIS));
         clerkPanel = new JPanel();
-        clerkPanel.setLayout(new BorderLayout());
+        clerkPanel.setLayout(new BoxLayout(clerkPanel, BoxLayout.Y_AXIS));
         borrowerPanel = new JPanel();
-        borrowerPanel.setLayout(new BorderLayout());
+        borrowerPanel.setLayout(new BoxLayout(borrowerPanel, BoxLayout.Y_AXIS));
         tableScrollPane = new JScrollPane();
+		tableScrollPane2 = new JScrollPane();
+		tableScrollPane3 = new JScrollPane();
         tablePanel = new JPanel();
-        tablePanel.setLayout(new BorderLayout());
+		tablePanel2 = new JPanel();
+		tablePanel3 = new JPanel();
+		tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
+		tablePanel2.setLayout(new BoxLayout(tablePanel2, BoxLayout.Y_AXIS));
+		tablePanel3.setLayout(new BoxLayout(tablePanel3, BoxLayout.Y_AXIS));
         tablePanel.add(tableScrollPane);
+		tablePanel2.add(tableScrollPane2);
+		tablePanel3.add(tableScrollPane3);
         
         //import icon for tabs
         ImageIcon icon = new ImageIcon("images/icon.png", "Pretty Icon");        
@@ -244,8 +262,9 @@ public class TheGUI implements ActionListener {
         tabbedPane.addTab("Borrower", icon, borrowerPanel, "Borrower Transactions");
         contentPanel.add(tabbedPane);
         contentPanel.add(tablePanel);         
-        
-        
+		contentPanel.add(tablePanel2);
+		contentPanel.add(tablePanel3);
+		
         // this line adds the panel to the
         // Frame's content pane
         mainWindow.addWindowListener(new WindowAdapter() 
@@ -265,13 +284,460 @@ public class TheGUI implements ActionListener {
     
     //Creates the Clerk tab
     public void createClerkPanel(){
+    	JButton addBorrowerButton = new JButton("Add Borrower");
+    	JButton checkOutBooksButton = new JButton("Check out Books");
+    	JButton processReturnButton = new JButton("Process a Return");
+		JButton checkOverdueButton = new JButton("Check Overdue Items");
+		
+		//add listener for Add Book button
+    	addBorrowerButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField name = new JTextField(5);
+				JTextField addr = new JTextField(5);
+				JTextField pass = new JTextField(5);
+				JTextField phone = new JTextField(5);
+				JTextField email = new JTextField(5);
+				JTextField sinorst = new JTextField(5);
+				JTextField type = new JTextField(5);
+
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("Name: "));
+			     myPanel.add(name);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Address: "));
+			     myPanel.add(addr);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Password: "));
+			     myPanel.add(pass);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Phone: "));
+			     myPanel.add(phone);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Email: "));
+			     myPanel.add(email);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Sin or Student Number: "));
+			     myPanel.add(sinorst);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("type: "));
+			     myPanel.add(type);
+			     
+			     int result = JOptionPane.showConfirmDialog(null, myPanel, 
+			               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+			     try{
+				     if (result == JOptionPane.OK_OPTION) {
+	
+				    	 clkTrans.addBorrower(name.getText(),
+				    			 				addr.getText(),				    			 				 
+				    			 				pass.getText(), 
+				    			 				Long.parseLong(phone.getText()), 
+				    			 				email.getText(), 
+				    			 				Integer.parseInt(sinorst.getText()), 
+				    			 				type.getText());
+				     }
+				     Statement stmt = con.createStatement();
+				     ResultSet rs = stmt.executeQuery("SELECT * FROM borrower");
+				     buildTable("List of Borrowers in Database", rs);
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be added", JOptionPane.WARNING_MESSAGE);
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+
+			            try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
+				    }
+				}
+				 
+			}
+          });
+		
+		//add listener for Check out Book button
+    	checkOutBooksButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField callNum = new JTextField(5);
+				JTextField bid = new JTextField(5);
+
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("bid: "));
+			     myPanel.add(bid);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Call Number(s): (separate by semi-colon) "));
+			     myPanel.add(callNum);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     try{
+
+				     int result = JOptionPane.showConfirmDialog(null, myPanel, 
+				               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+				     if(!callNum.getText().isEmpty() && result == JOptionPane.OK_OPTION)
+				     {
+				    	 if(callNum.getText().contains(";")){
+								String[] callNums = callNum.getText().split("\\s*;\\s*"); //delimit call numbers by semicolon
+								for(int i = 0; i < callNums.length; i++){
+									clkTrans.borrowBook(callNums[i], Integer.parseInt(bid.getText()));
+								}
+							}
+				    	 else{
+				    		 clkTrans.borrowBook(callNum.getText(), Integer.parseInt(bid.getText()));
+				    	 }
+					     Statement stmt = con.createStatement();
+					     ResultSet rs = stmt.executeQuery("SELECT * FROM borrowing WHERE bid = '"+bid.getText()+"'");
+					     buildTable("List of of borrowings for bid "+bid.getText(), rs);
+				     }
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be added", JOptionPane.WARNING_MESSAGE);
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+
+			            try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
+				    }
+				}
+				 
+			}
+          });
     	
+    	/*
+    	 * Processes a return. 
+    	 * When  an item is returned, the clerk records the return by providing the item's catalogue number. 
+    	 * The system determines the borrower who had borrowed the item and records that the the item is "in".  
+    	 * If the item is overdue, a fine is assessed for the borrower.  
+    	 * If there is a hold request for this item by another borrower, the item is registered as "on hold" and a message is send to the borrower who made the hold request.
+    	 */    	
+    	processReturnButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField callNum = new JTextField(5);
+				JTextField copyNo = new JTextField(5);
+
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("Call Number: "));
+			     myPanel.add(callNum);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     myPanel.add(new JLabel("Copy Number: "));
+			     myPanel.add(copyNo);
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			     
+			     try{
+
+				     int result = JOptionPane.showConfirmDialog(null, myPanel, 
+				               "Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+				     if(!callNum.getText().isEmpty() && result == JOptionPane.OK_OPTION)
+				     {
+				    	 Calendar cal = Calendar.getInstance();
+				    	 java.sql.Date inDate = new java.sql.Date(cal.getTimeInMillis());
+			    		 String result2 = clkTrans.returnBook(callNum.getText(), Integer.parseInt(copyNo.getText()), inDate);
+			    		 Statement stmt1 = con.createStatement();
+			    		 Statement stmt2 = con.createStatement();
+			    		 Statement stmt3 = con.createStatement();
+			    		 ResultSet rs1 = null;
+			    		 ResultSet rs2 = null;
+			    		 ResultSet rs3 = null;
+			    		 //If return was processed successfully
+			    		 if(result2.equals("T")){
+			    			 JOptionPane.showMessageDialog(null, "Book was returned successfully", "Process Return Completed", JOptionPane.INFORMATION_MESSAGE);
+			    			 rs1 = stmt1.executeQuery("SELECT * FROM bookcopy WHERE callnumber = '"+callNum.getText()+"'");						     
+						     rs2 = stmt2.executeQuery("SELECT * FROM borrowing WHERE callnumber = '"+callNum.getText()+"' AND copyno ="+copyNo.getText()+"ORDER BY indate DESC");
+						     rs3 = stmt3.executeQuery("SELECT null FROM bookcopy WHERE callnumber IS NULL");  //Placeholder table
+						     buildThreeTables("List of Copies for Call Nummber "+callNum.getText()+":", "Borrowings Related to This Item", "", rs1, rs2, rs3);
+						     //Remove the placeholder table
+						     tableScrollPane3.removeAll();
+						     tablePanel3.removeAll();
+						     mainWindow.pack();
+			    		 }
+			    		 //if failed to process return
+			    		 else if(result2.equals("F")){
+			    			 JOptionPane.showMessageDialog(null, "The book was not returned. \nLikely Cause: book was already returned", "Process Return Failed", JOptionPane.WARNING_MESSAGE);
+			    		 }
+			    		 //if item was returned successfully AND placed on hold
+			    		 else{
+			    			 JOptionPane.showMessageDialog(null, "Book was returned successfuly. \nHold request completed for borrower with bid "+result2+".", "Book Returned and Held", JOptionPane.INFORMATION_MESSAGE);
+			    			 JOptionPane.showMessageDialog(null, "Email message sent to account with bid "+result2+", reminding the borrower that his or her requested item is now available.", "Message Sent", JOptionPane.INFORMATION_MESSAGE);
+						     rs1 = stmt1.executeQuery("SELECT * FROM bookcopy WHERE callnumber = '"+callNum.getText()+"'");
+						     rs2 = stmt2.executeQuery("SELECT * FROM holdrequest WHERE callnumber = '"+callNum.getText()+"' AND bid = "+result2);
+						     rs3 = stmt3.executeQuery("SELECT * FROM borrowing WHERE callnumber = '"+callNum.getText()+"' AND copyno ="+copyNo.getText()+"ORDER BY indate DESC");
+						     buildThreeTables("List of Copies for Call Nummber "+callNum.getText()+":", "Updated Hold Requests on This Item: ", "Borrowings Related to This Item", rs1, rs2, rs3);
+			    		 }
+					     
+			    		 stmt1.close();
+			    		 stmt2.close();
+			    		 stmt3.close();
+				     }
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be returned", JOptionPane.WARNING_MESSAGE);
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+			    	 ex.printStackTrace();
+			            try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+				    	ex2.printStackTrace();
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
+				    }
+				}
+				 
+			}
+          });
+    	
+    	/*
+    	 * Checks overdue items. 
+    	 * The system displays a list of the items that are overdue and the borrowers who have checked them out.  
+    	 * The clerk may decide to send an email messages to any of them (or to all of them). 
+    	 */
+    	checkOverdueButton.addActionListener(new ActionListener(){            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				try{
+						ResultSet booksOut = clkTrans.booksOut();				
+						DefaultTableModel tModel = booksOutRSToTableModel(new DefaultTableModel(), booksOut);
+						int numRows = tModel.getRowCount();
+						String message = "Message sent to: \n"+String.format("%1$-" + 15 + "s", "BID")+" || "+String.format("%1$" + 15 + "s", "EMAIL") +"\n";
+						int result = JOptionPane.showConfirmDialog(null, "Email ALL borrowers with overdue books?");
+						buildOverdueTable("List of outstanding overdue books (CLICK ROWS TO SEND EMAIL):",tModel);
+					
+						if(result == JOptionPane.YES_OPTION){
+							for(int i = 0; i < numRows; i++){						
+								String bid = tModel.getValueAt(i, 0).toString();
+								bid.trim();
+								String email = (String)tModel.getValueAt(i, 1);
+								message = message + String.format("%1$-" + 15 + "s", bid)+ " || "+ String.format("%1$" + 15 + "s", email) +"\n"; 
+							}
+							JOptionPane.showMessageDialog(null, message, "Emails Sent", JOptionPane.INFORMATION_MESSAGE);
+						}					
+						else if(result == JOptionPane.NO_OPTION){
+							JOptionPane.showMessageDialog(null, message, "Click table rows to send individual emails", JOptionPane.INFORMATION_MESSAGE);
+						}
+		    
+			     }			    
+				catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+			    	 ex.printStackTrace();
+			            try 
+				    {
+					con.rollback();	
+				    }
+				    catch (SQLException ex2)
+				    {
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+				    	ex2.printStackTrace();
+				    	System.out.println("Message: " + ex2.getMessage());
+				    	System.exit(-1);		
+				    }
+				}
+				 
+			}
+          });
+    	
+    	clerkPanel.add(addBorrowerButton);
+    	clerkPanel.add(checkOutBooksButton);
+    	clerkPanel.add(processReturnButton);
+    	clerkPanel.add(checkOverdueButton); 
     }
     
     //Creates the Borrower tab
     public void createBorrowerPanel(){
     	JButton placeHoldButton = new JButton("Place hold");
-    	
+    	JButton searchBookButton = new JButton("Search book");
+    	JButton showFineButton = new JButton("Show Your Fines");
+		JButton payFineButton = new JButton("Pay a Fine");
+		JButton myAccountButton = new JButton("My Account");
+		
+    	//Show fines for a given borrower
+    	showFineButton.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				JTextField bidField = new JTextField(10);
+				JPanel myPanel = new JPanel();
+			    myPanel.add(new JLabel("bid"));
+				myPanel.add(bidField);
+				ResultSet rs=null;
+				int result = JOptionPane.showConfirmDialog(null, myPanel, 
+						"ShowFine:", JOptionPane.OK_CANCEL_OPTION);
+			     try{
+				     if (result == JOptionPane.OK_OPTION) {
+				    	 rs=borTrans.showFine(Integer.parseInt(bidField.getText()));
+				     
+
+					     if(rs.next()==false){
+					    	 if(borTrans.isBoridExist(Integer.parseInt(bidField.getText()))){
+					    	 JOptionPane.showMessageDialog(null, "You currently have no fines","Notice",JOptionPane.INFORMATION_MESSAGE);
+					    	 }
+					    	 else
+					    	 {
+					    	JOptionPane.showMessageDialog(null, "Borid does not exist in database","Warning",JOptionPane.WARNING_MESSAGE);
+					    	 }
+					    }
+					  
+					     rs.beforeFirst();
+					     buildTable("Your Fines", rs);
+					 }     
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } 
+			     catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+	     
+			     }
+			     }
+			});
+
+    	//add listener to Search Book button
+    	searchBookButton.addActionListener(new ActionListener()
+		{            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				JTextField searchField = new JTextField(10);
+				JComboBox searchCategory = new JComboBox();
+
+				searchCategory.addItem("Title");
+				searchCategory.addItem("Author");
+				searchCategory.addItem("Subject");
+				
+				JPanel myPanel = new JPanel();
+				
+				myPanel.add(searchField);
+				myPanel.add(searchCategory);
+
+				int result = JOptionPane.showConfirmDialog(null, myPanel, 
+						"Search for a book:", JOptionPane.OK_CANCEL_OPTION);
+							     try{
+								     if (result == JOptionPane.OK_OPTION) {
+								    	 String category = (String) searchCategory.getSelectedItem();
+								    	 String query = searchField.getText();
+								    	 ResultSet matches = borTrans.findMatch(category, query);
+								    	 ResultSet inCopies;
+								    	 ResultSet outCopies;
+								    	 String callnum;
+								    	 String title;
+								    	 int inCount;
+								    	 int outCount;
+								    	 ArrayList<String> titles = new ArrayList<String>();
+								    	 ArrayList<String> callNums = new ArrayList<String>();
+								    	 ArrayList<Integer> inCounts = new ArrayList<Integer>();
+								    	 ArrayList<Integer> outCounts = new ArrayList<Integer>();
+
+								    	 //for each match, find numbers of copies in and out
+								    	 while(matches.next()){
+								    		 callnum = matches.getString("callnumber");							    		 
+								    		 callNums.add(callnum);
+								    		 title = matches.getString("title");
+								    		 titles.add(title);
+								    		 
+								    		 Statement stmt = con.createStatement();
+								    		 
+								    		 //Get Number of Copies in
+								    		 inCopies = stmt.executeQuery("SELECT callnumber, COUNT(callNumber) AS count " +
+														"FROM bookCopy " +
+														"WHERE callNumber = '"+callnum+ "' AND status = 'in' " +
+														"GROUP BY callNumber");
+								    		 if(inCopies.next())
+								    			 inCount = inCopies.getInt("count");
+								    		 else
+								    			 inCount = 0;
+								    		 
+								    		 inCounts.add(inCount);
+								    		 
+								    		//Get Number of Copies out
+								    		 outCopies = stmt.executeQuery("SELECT callnumber, COUNT(callNumber) AS count " +
+														"FROM bookCopy " +
+														"WHERE callNumber = '"+callnum+ "' AND status = 'out' " +
+														"GROUP BY callNumber");								    		 
+								    		 if(outCopies.next())
+								    			 outCount = outCopies.getInt("count");
+								    		 else
+								    			 outCount = 0;
+								    		 
+								    		 outCounts.add(outCount);	
+
+								    	 }
+								    	 
+								    	 //Build table based on the 4 ArrayLists of Data
+								    	 DefaultTableModel model= new DefaultTableModel();
+							    		 String cols[]=new String[4];
+							    		 cols[0] = "Call Number";
+							    		 cols[1] = "Title";
+							    		 cols[2] = "Copies in";
+							    		 cols[3] = "Copies out";
+							    		 model.setColumnIdentifiers(cols);		 
+
+							    		 for(int i = 0; i<callNums.size();i++){
+							    			 Object data[]= new Object[4];
+							    			 data[0] = callNums.get(i);
+							    			 data[1] = titles.get(i);
+							    			 data[2] = inCounts.get(i);
+							    			 data[3] = outCounts.get(i);
+		
+							    			 model.addRow(data);
+							    		 }
+							    		 
+							    		 buildTable("Search Results for " + category + ": " + "'"+ query + "'", model);
+										
+								     }
+					
+								    
+							     }
+							     catch (NumberFormatException ex){
+							    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", JOptionPane.WARNING_MESSAGE);
+							    	 System.out.println("Invalid input: " + ex.getMessage());
+							    	 System.out.println("Please try again.");
+							     }
+							     catch (SQLException e) {
+										JOptionPane.showMessageDialog(null, "SQL Error:\n " + e.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+										e.printStackTrace();
+								 }
+			}
+		});
+
     	//add listener for Place Hold button
     	placeHoldButton.addActionListener(new ActionListener()
         {            
@@ -297,25 +763,26 @@ public class TheGUI implements ActionListener {
 				     if (result == JOptionPane.OK_OPTION) {
 				    	 borTrans.holdOutBook(Integer.parseInt(bid.getText()), callNumber.getText());
 				     }
-				     Statement stmt = con.createStatement();
-				     ResultSet rs = stmt.executeQuery("SELECT * FROM holdRequest");
-				     buildTable(rs);
+				     PreparedStatement ps = con.prepareStatement("SELECT hid, callnumber AS Call_Number, issueddate AS Issued_Date FROM holdRequest WHERE bid = ?");
+				     ps.setInt(1, Integer.parseInt(bid.getText()));
+				     ResultSet rs = ps.executeQuery();
+				     buildTable("Your Hold Requests", rs);
 			     }
 			     catch (bookAvailableException ex){
-			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", JOptionPane.INFORMATION_MESSAGE);
 			     }
 			     catch (bookNotExistsException ex){
-			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", JOptionPane.INFORMATION_MESSAGE);
 			     }
 			     catch (bidNotExistsException ex){
-			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", 1);
+			    	JOptionPane.showMessageDialog(null, ex.getMessage(), "Hold cannot be placed", JOptionPane.INFORMATION_MESSAGE);
 			     }
 			     catch (NumberFormatException ex){
-			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", 1);
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", JOptionPane.WARNING_MESSAGE);
 			    	 System.out.println("Invalid input: " + ex.getMessage() + "\nPlease try again\n");
 			     } 
 			     catch (SQLException ex) {
-			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 			    	System.out.println("Message: " + ex.getMessage());
 
 			        try 
@@ -324,7 +791,7 @@ public class TheGUI implements ActionListener {
 				    }
 				    catch (SQLException ex2)
 				    {
-				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);	
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);	
 				    	System.out.println("Message: " + ex2.getMessage());
 				    	System.exit(-1);		
 				    }
@@ -332,7 +799,134 @@ public class TheGUI implements ActionListener {
 				 
 			}
           });
-    	
+
+    	//add Listener for Pay Fine button
+		payFineButton.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				JTextField boridField = new JTextField(10);
+				JTextField fidField = new JTextField(10);
+				JTextField bidField = new JTextField(10);
+				JTextField payField = new JTextField(10);
+				
+				JPanel myPanel = new JPanel();				
+				myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			    myPanel.add(new JLabel("borid"));
+				myPanel.add(boridField);
+			    myPanel.add(new JLabel("fid"));
+				myPanel.add(fidField);
+			    myPanel.add(new JLabel("bid"));
+				myPanel.add(bidField);				
+
+				JPanel payPanel = new JPanel();				
+				payPanel.setLayout(new BoxLayout(payPanel, BoxLayout.Y_AXIS));
+			    payPanel.add(new JLabel("Credit Card Number"));
+				payPanel.add(payField);
+				
+				ResultSet rs=null;
+				int result = JOptionPane.CANCEL_OPTION;
+				int payMe = JOptionPane.showConfirmDialog(null, payPanel, "Enter Credit Card Number:", JOptionPane.OK_CANCEL_OPTION);
+				if(payMe == JOptionPane.OK_OPTION && !payField.getText().isEmpty()){
+					result = JOptionPane.showConfirmDialog(null, myPanel, "Pay Fine", JOptionPane.OK_CANCEL_OPTION);
+				}
+				else{
+					JOptionPane.showMessageDialog(null, "Please pay up before we steal Christmas.\nAnd burn your house.");
+				}
+
+			     try{
+			    	 int success=0;
+				     if (result == JOptionPane.OK_OPTION) {
+				    	 success =borTrans.payFine(Integer.parseInt(fidField.getText()));
+				    	 rs=borTrans.showFine(Integer.parseInt(bidField.getText()));
+					 	 
+				    	 //returns 0 if failed
+					     if(success==0){
+					    	 JOptionPane.showMessageDialog(null, "Warning: Payment could not be processed\nIf cancel was not selected, please check the fine id","Warning",JOptionPane.WARNING_MESSAGE);
+					     }
+						 
+					     //returns 2 if already paid
+					     else if(success==2){
+					    	 JOptionPane.showMessageDialog(null, "Payment has already been paid.\n Transaction not processed ","Warning",JOptionPane.WARNING_MESSAGE);
+					     }
+					     
+					     //returns 1 if successful
+					     else if(success==1){
+					    	 JOptionPane.showMessageDialog(null, "Thank You for paying your fine.\n Please remember to return your books on time from now on","Notice",JOptionPane.INFORMATION_MESSAGE);
+					     }
+					     else{
+						     if(rs.next()==false){
+						    	 JOptionPane.showMessageDialog(null, "Congrats, You currently have no fines","Notice",JOptionPane.INFORMATION_MESSAGE);
+						     }
+					     }
+					     rs.beforeFirst();
+					     buildTable("Your fines", rs);
+				     }
+
+			     }
+			     catch (NumberFormatException ex){
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Hold cannot be placed", JOptionPane.WARNING_MESSAGE);
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } 
+			     catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+			}}});
+		
+		//add listener for My Account button
+		myAccountButton.addActionListener(new ActionListener()
+		{            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				JTextField bidField = new JTextField(5);
+				
+				JPanel myPanel = new JPanel();
+				myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+				myPanel.add(new JLabel("Enter your Borrower ID:"));
+				myPanel.add(bidField);
+				myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+				
+				int result = JOptionPane.showConfirmDialog(null, myPanel, 
+						"Please Enter the Following Info:", JOptionPane.OK_CANCEL_OPTION);
+				
+				if (result == JOptionPane.OK_OPTION) {
+					 PreparedStatement ps;
+					 PreparedStatement ps2;
+					 PreparedStatement ps3;
+						try {
+							ps = con.prepareStatement(
+								"SELECT borrowing.callNumber, book.title, book.mainAuthor, borrowing.copyNo, borrowing.outDate, borrowing.inDate FROM book, bookcopy, borrower, borrowing WHERE borrowing.callNumber = book.callNumber AND borrowing.callNumber = bookcopy.callNumber AND borrowing.copyNo = bookcopy.copyNo AND borrower.bid = borrowing.bid AND borrower.bid = ?");
+							ps.setString(1, bidField.getText()); 
+							
+							
+							ps2 = con.prepareStatement(
+								"SELECT issuedDate, holdrequest.callNumber, title, mainAuthor FROM holdrequest JOIN book on holdrequest.callNumber = book.callNumber WHERE holdrequest.bid = ?");
+							ps2.setString(1, bidField.getText()); 
+						
+							
+							ps3 = con.prepareStatement(
+								"SELECT fine.fid, borrowing.borid, title, mainAuthor, borrowing.callNumber, amount as fineAmount FROM borrowing, book, fine WHERE borrowing.borid = fine.borid AND book.callNumber = borrowing.callNumber AND fine.paiddate IS NULL AND borrowing.bid = ?");
+							ps3.setString(1, bidField.getText()); 
+					
+							ResultSet rs = ps.executeQuery(); 
+							ResultSet rs2 = ps2.executeQuery(); 
+							ResultSet rs3 = ps3.executeQuery(); 
+					    	buildThreeTables("My Borrowed Books", "My Hold Requests", "My Outstanding Fines", rs, rs2, rs3);
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}	 
+				}
+
+			}
+		});
+
+		borrowerPanel.add(myAccountButton);
+		borrowerPanel.add(payFineButton);
+		borrowerPanel.add(showFineButton);
+		borrowerPanel.add(searchBookButton);
     	borrowerPanel.add(placeHoldButton);
     }
     
@@ -342,6 +936,7 @@ public class TheGUI implements ActionListener {
     	JButton addBookButton = new JButton("Add a book");
     	JButton printBorrowingsButton = new JButton("Print all borrowings");
     	JButton getPopularBooksButton = new JButton("Show popular books");
+    	JButton showAllFineButton = new JButton("Show All Fines");
     	
     	//add listener for Add Book button
     	addBookButton.addActionListener(new ActionListener()
@@ -400,14 +995,14 @@ public class TheGUI implements ActionListener {
 				     }
 				     Statement stmt = con.createStatement();
 				     ResultSet rs = stmt.executeQuery("SELECT * FROM book");
-				     buildTable(rs);
+				     buildTable("List of Books in Database", rs);
 			     }
 			     catch (NumberFormatException ex){
-			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be added", 1);
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Book cannot be added", JOptionPane.WARNING_MESSAGE);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     } catch (SQLException ex) {
-			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 			    	 System.out.println("Message: " + ex.getMessage());
 
 			            try 
@@ -416,7 +1011,7 @@ public class TheGUI implements ActionListener {
 				    }
 				    catch (SQLException ex2)
 				    {
-				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 				    	System.out.println("Message: " + ex2.getMessage());
 				    	System.exit(-1);		
 				    }
@@ -452,14 +1047,14 @@ public class TheGUI implements ActionListener {
 				    	 rs = libTrans.generateBorrowingsReport(subject.getText());
 				     }
 				     DefaultTableModel tModel = borrowingsRSToTableModel(new DefaultTableModel(), rs);
-				     buildTable(tModel);
+				     buildTable("Books currently checked out", tModel);
 			     }
 			     catch (NumberFormatException ex){
-			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", 1);
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", JOptionPane.WARNING_MESSAGE);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     } catch (SQLException ex) {
-			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 			    	 System.out.println("Message: " + ex.getMessage());
 
 			        try 
@@ -468,7 +1063,7 @@ public class TheGUI implements ActionListener {
 				    }
 				    catch (SQLException ex2)
 				    {
-				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", 1);
+				    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 						System.out.println("Message: " + ex2.getMessage());
 						System.exit(-1);		
 				    }
@@ -499,23 +1094,50 @@ public class TheGUI implements ActionListener {
 				    		 rs = libTrans.booksByPopularity(Integer.parseInt(topN.getText()));
 				    	 else	//if nothing was entered
 				    		 rs = libTrans.booksByPopularity(10);
-					     DefaultTableModel tModel = topBooksRSToTableModel(new DefaultTableModel(), rs);
-				    	 buildTable(tModel);
+					     DefaultTableModel tModel = topBooksRSToTableModel(new DefaultTableModel(), rs);				    	 					     
+					     buildTable("Most Popular Books", tModel);
 				     }
 			     }
 			     catch (NumberFormatException ex){
-			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", 1);
+			    	 JOptionPane.showMessageDialog(null, "Invalid input detected\n " + ex.getMessage() + "\nPlease try again", "Operation cannot proceed", JOptionPane.WARNING_MESSAGE);
 			    	 System.out.println("Invalid input: " + ex.getMessage());
 			    	 System.out.println("Please try again.");
 			     }
 			     catch (SQLException ex) {
-			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", 1);
+			    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 				    System.out.println("Message: " + ex.getMessage());
 			     }
 				 
 			}
           });
     	
+    	//add listener for Show All Fines button
+    	showAllFineButton.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				ResultSet rs=null;
+
+			     try{
+
+			    	 rs=libTrans.showAllFine();
+
+				     if(rs.next()==false){
+				    	 JOptionPane.showMessageDialog(null, "There are no fines","Notice",JOptionPane.INFORMATION_MESSAGE);
+				     }
+				     rs.beforeFirst();
+				     buildTable("List of All Fines", rs);
+
+			     }
+			     catch (NumberFormatException ex){
+			    	 System.out.println("Invalid input: " + ex.getMessage());
+			    	 System.out.println("Please try again.");
+			     } catch (SQLException ex) {
+				    	System.out.println("Message: " + ex.getMessage());
+		}}});
+    	
+		librarianPanel.add(showAllFineButton);
     	librarianPanel.add(addBookButton);
     	librarianPanel.add(printBorrowingsButton);
     	librarianPanel.add(getPopularBooksButton);
@@ -526,7 +1148,7 @@ public class TheGUI implements ActionListener {
     {    	   	
     	ResultSetMetaData meta= row.getMetaData();
 	    if(model==null) model= new DefaultTableModel();
-	    String cols[]=new String[meta.getColumnCount()+1]; //+1 because we're not using the last RS column, but will be adding two extra columns of our own at the end
+	    String cols[]=new String[meta.getColumnCount()+2]; //+2 because we're not using the last RS column, but will be adding two extra columns of our own at the end
 	    for(int i=0;i< cols.length-2;++i)  //length-2 because discarding last column of RS (booktimelimit)
 	    	{
 	    		cols[i]= meta.getColumnLabel(i+1);
@@ -545,15 +1167,17 @@ public class TheGUI implements ActionListener {
 			   	}
 				
 				//For the second last table column, calculate and output dueDate based on booktimelimit
-				SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyy-MM-dd" );
+				SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyy-MM-dd" );		
 				Date currentDate = new Date();
 				Date outDate = row.getDate("Out");
-				int timelimit = row.getInt("booktimelimit") * DAY_IN_MILLISECS; //converts timelimit from days to milliseconds
-				Date dueDate = new Date(outDate.getTime() + timelimit);
+				Calendar cal = Calendar.getInstance();
+				cal.setTimeInMillis(outDate.getTime());
+				cal.add(Calendar.DAY_OF_MONTH, row.getInt("booktimelimit"));
+				Date dueDate = new Date(cal.getTimeInMillis());
 				data[cols.length-2]	=  dateFormat.format(dueDate); //formats dueDate to specified format
 				
 				//For the very last table column, determine if borrowing is overdue
-				if(dueDate.getTime() < currentDate.getTime()){ //if current time is bigger than dueDate's time, then dueDate's already passed, and item is overdue
+				if(dueDate.before(currentDate)){ 
 					data[cols.length-1] = true;
 				}
 				else{
@@ -587,6 +1211,45 @@ public class TheGUI implements ActionListener {
 		return model;
 	}
     
+    /*Helper for buildTable: Converts a Books Out resultSet into a table model*/
+    DefaultTableModel booksOutRSToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
+    {
+		SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyy-MM-dd" );
+		Date outDate;
+		Calendar cal;
+		java.sql.Date dueDate;
+		
+    	ResultSetMetaData meta= row.getMetaData();
+	    if(model==null) model= new DefaultTableModel();
+	    String cols[]=new String[meta.getColumnCount()+1];
+	    for(int i=0;i< cols.length-1;++i)
+	    	{
+	    	cols[i]= meta.getColumnLabel(i+1);
+	    	}
+	    cols[meta.getColumnCount()] = "Due Date"; 
+	    model.setColumnIdentifiers(cols);
+	
+		while(row.next()){
+				Object data[]= new Object[cols.length];
+				//determine due date for item
+				outDate = row.getDate("outdate");
+				cal = Calendar.getInstance();
+				cal.setTimeInMillis(outDate.getTime()); //set cal's time to outDate's time
+				cal.add(Calendar.DATE, row.getInt("bookTimeLimit")); //add days to cal to get due date
+				dueDate = new java.sql.Date(cal.getTimeInMillis()); //convert due date to sql Date object
+				//if item is overdue, add data to row, and add row to table
+				if(dueDate.before(new java.sql.Date(System.currentTimeMillis()))){ 
+					data[data.length-1] = dateFormat.format(dueDate);
+					for(int i=0;i< data.length-1;i++){
+						data[i]=row.getObject(i+1);				
+					}
+					model.addRow(data);
+				}			
+
+		}
+		return model;
+	}    
+    
     /*Helper for buildTable: Converts a resultSet into a table model*/
     DefaultTableModel resultSetToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
     {
@@ -602,43 +1265,142 @@ public class TheGUI implements ActionListener {
 	
 		while(row.next()){
 				Object data[]= new Object[cols.length];
-				for(int i=0;i< data.length;++i){
-			    		data[i]=row.getObject(i+1);
+				for(int i=0;i< data.length;i++){
+						data[i]=row.getObject(i+1);				
 			   	}
 					model.addRow(data);
 		}
 		return model;
-	}
+	}    
+    
     
     //build and display a table based on a given ResultSet
-    public void buildTable(final ResultSet rs){   
+    public void buildTable(String title, final ResultSet rs){   
     	DefaultTableModel tModel = null;
 		try {
 			tModel = resultSetToTableModel(new DefaultTableModel(),rs);
 		} catch (SQLException e1) {
-			JOptionPane.showMessageDialog(null, "SQL Error:\n " + e1.getMessage() + "\nPlease try again", "Error Detected", 1);
+			JOptionPane.showMessageDialog(null, "SQL Error:\n " + e1.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
 			System.out.println(e1.getMessage());
 			e1.printStackTrace();
 		}  	  	
 		//Clear Scroll Panel and update with new table
-        tableScrollPane.removeAll();
-        tablePanel.removeAll();
+		tableScrollPane.removeAll();
+		tablePanel.removeAll();
+		tableScrollPane2.removeAll();
+		tablePanel2.removeAll();
+		tableScrollPane3.removeAll();
+		tablePanel3.removeAll();
         table = new JTable(tModel);    
         tableScrollPane = new JScrollPane(table);
+		tablePanel.add(new Label(title));
         tablePanel.add(tableScrollPane);        
         mainWindow.pack();
     }
     
     //build and display a table based on a given Table Model
-    public void buildTable(DefaultTableModel tModel){   	  	
+    public void buildTable(String title, DefaultTableModel tModel){   	  	
 		//Clear Scroll Panel and update with new table
-        tableScrollPane.removeAll();
-        tablePanel.removeAll();
+		tableScrollPane.removeAll();
+		tablePanel.removeAll();
+		tableScrollPane2.removeAll();
+		tablePanel2.removeAll();
+		tableScrollPane3.removeAll();
+		tablePanel3.removeAll();
         table = new JTable(tModel);    
         tableScrollPane = new JScrollPane(table);
+		tablePanel.add(new Label(title));
         tablePanel.add(tableScrollPane);        
         mainWindow.pack();
     }
+    
+    //build and display a table for overdue items based on a given Table Model
+    public void buildOverdueTable(String title, DefaultTableModel tModel){   	  	
+		//Clear Scroll Panel and update with new table
+		tableScrollPane.removeAll();
+		tablePanel.removeAll();
+		tableScrollPane2.removeAll();
+		tablePanel2.removeAll();
+		tableScrollPane3.removeAll();
+		tablePanel3.removeAll();
+        table = new JTable(tModel);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.addMouseListener(new MouseListener(){            
+
+			@Override
+			//On click, ask to send email to corresponding account
+			public void mouseClicked(MouseEvent e) {
+				JPanel myPanel = new JPanel();				
+				int row = table.getSelectedRow();				
+				String message = "Email sent to: "; 
+				String email = (String)table.getValueAt(row, 1);
+				myPanel.add(new Label("Send Email to "+email+"?"));
+				 int result = JOptionPane.showConfirmDialog(null, myPanel, "Confirm send email", JOptionPane.OK_CANCEL_OPTION);
+				if(result == JOptionPane.OK_OPTION)
+					JOptionPane.showMessageDialog(null, message+email, "Emails Sent", JOptionPane.INFORMATION_MESSAGE);
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+
+			@Override
+			public void mouseExited(MouseEvent e) {}
+
+			@Override
+			public void mousePressed(MouseEvent e) {}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+
+          });
+        tableScrollPane = new JScrollPane(table);
+		tablePanel.add(new Label(title));
+        tablePanel.add(tableScrollPane);        
+        mainWindow.pack();
+    }
+    
+    //Construct all 3 Tables
+	public void buildThreeTables(String title1, String title2, String title3, final ResultSet rs1, final ResultSet rs2, final ResultSet rs3){   
+		DefaultTableModel tModel1 = null;
+		DefaultTableModel tModel2 = null;
+		DefaultTableModel tModel3 = null;
+		try {
+			tModel1 = resultSetToTableModel(new DefaultTableModel(),rs1);
+			tModel2 = resultSetToTableModel(new DefaultTableModel(),rs2);
+			tModel3 = resultSetToTableModel(new DefaultTableModel(),rs3);
+		} catch (SQLException e1) {
+			System.out.println(e1.getMessage());
+			e1.printStackTrace();
+		}  	  	
+		
+		//Clear Scroll Panel and update with new table
+		tableScrollPane.removeAll();
+		tablePanel.removeAll();
+		table = new JTable(tModel1);    
+		tableScrollPane = new JScrollPane(table);
+		tablePanel.add(new Label(title1));
+		tablePanel.add(tableScrollPane);
+		
+		//Clear Scroll Panel and update with new table
+		tableScrollPane2.removeAll();
+		tablePanel2.removeAll();
+		table2 = new JTable(tModel2);    
+		tableScrollPane2 = new JScrollPane(table2);
+		tablePanel2.add(new Label(title2));
+		tablePanel2.add(tableScrollPane2); 
+		
+		//Clear Scroll Panel and update with new table
+		tableScrollPane3.removeAll();
+		tablePanel3.removeAll();
+		table3 = new JTable(tModel3);    
+		tableScrollPane3 = new JScrollPane(table3);
+		tablePanel3.add(new Label(title3));
+		tablePanel3.add(tableScrollPane3); 
+				
+		mainWindow.pack();
+	}
+	
+    
     class MainFrame extends JFrame
     {
         public MainFrame(String title)
@@ -663,46 +1425,5 @@ public class TheGUI implements ActionListener {
     {
       TheGUI b = new TheGUI();
     }
-    /**Not necessary for now, but keeping here just in case we need a menu later
-    private void createMenuBar(){
-    	JMenu menu, submenu;
-    	JMenuItem menuItem;
-    	
-    	//Create the menu bar.
-    	menuBar = new JMenuBar();
-    	
-    	menuBar.add(createLibrarianMenu());
-    	
-    	
-
-    	mainWindow.setJMenuBar(menuBar);
-    }
-    
-    private JMenu createLibrarianMenu(){
-    	JMenu menu, submenu;
-    	JMenuItem menuItem;
-    	//Build the Librarian menu.
-    	menu = new JMenu("Librarian");
-    	menu.setMnemonic(KeyEvent.VK_L);
-    	menu.getAccessibleContext().setAccessibleDescription("Menu for all librarian transactions");
-    	
-    	//Transactions
-    	//Add new book
-    	menuItem = new JMenuItem("Add new book",
-    	                         KeyEvent.VK_N);
-    	menuItem.setAccelerator(KeyStroke.getKeyStroke(
-    	        KeyEvent.VK_N, ActionEvent.ALT_MASK));
-    	menuItem.getAccessibleContext().setAccessibleDescription("Adds a new book");
-    	menuItem.setMnemonic(KeyEvent.VK_B);
-    	menuItem.addActionListener(new ActionListener()
-        {            
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				
-				
-			}
-          });
-    	menu.add(menuItem);
-    }
-    **/
+   
 }

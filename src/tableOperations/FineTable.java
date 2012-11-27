@@ -46,20 +46,18 @@ public class FineTable
     /*
      * inserts a fine
      */ 
- 	public void insertFine(int fid, float amount, Date issueDate, Date paidDate, int borid)
+ 	public void insertFine(float amount, Date issueDate, int borid)
  	{ 	
 
  		PreparedStatement ps;
 
  		try
  		{
- 			ps = con.prepareStatement("INSERT INTO Borrowing VALUES (?,?,?,?,?)");
+ 			ps = con.prepareStatement("INSERT INTO fine VALUES (fid_counter.nextval,?,?,NULL,?)");
 
- 			ps.setInt(1, fid);
- 			ps.setFloat(2, amount);
- 			ps.setDate(3, issueDate);
- 			ps.setDate(4, paidDate);
- 			ps.setInt(5, borid);
+ 			ps.setFloat(1, amount);
+ 			ps.setDate(2, issueDate);
+ 			ps.setInt(3, borid);
  			
  			ps.executeUpdate();
 

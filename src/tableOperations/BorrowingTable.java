@@ -46,21 +46,19 @@ public class BorrowingTable
     /*
      * inserts a borrowing
      */ 
- 	public void insertBorrowing(int borid, int bid, String callNumber, int copyNo, Date outDate, Date inDate)
+ 	public void insertBorrowing(int bid, String callNumber, int copyNo, Date outDate)
  	{ 	
 
  		PreparedStatement ps;
 
  		try
  		{
- 			ps = con.prepareStatement("INSERT INTO Borrowing VALUES (?,?,?,?,?,?)");
+ 			ps = con.prepareStatement("INSERT INTO Borrowing VALUES (borid_counter.nextval,?,?,?,?,NULL)");
 
- 			ps.setInt(1, borid);
- 			ps.setInt(2, bid);
- 			ps.setString(3, callNumber);
- 			ps.setInt(4, copyNo);
- 			ps.setDate(5, outDate);
- 			ps.setDate(6, inDate);
+ 			ps.setInt(1, bid);
+ 			ps.setString(2, callNumber);
+ 			ps.setInt(3, copyNo);
+ 			ps.setDate(4, outDate);
 
  			ps.executeUpdate();
 

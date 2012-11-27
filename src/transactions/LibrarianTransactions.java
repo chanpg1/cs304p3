@@ -1,5 +1,10 @@
 package transactions;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import tableOperations.*;
 
 //We need to import the java.sql package to use JDBC
@@ -108,15 +113,15 @@ public class LibrarianTransactions {
 		PreparedStatement ps;
 		try{
 			if(subject.length()==0){
-				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, borid, outdate AS Out, Btype.booktimelimit " +
-											"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype " +
-											"WHERE Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type " +
+				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, Bcp.copyno, borid, outdate AS Out, Btype.booktimelimit " +
+											"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype, bookcopy Bcp " +
+											"WHERE Bcp.status = 'out' AND Bcp.copyno = Bwg.copyno AND Bcp.callnumber = Bwg.callnumber AND Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type " +
 											"ORDER BY Bk.callnumber");
 			}
 			else{
-				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, borid, subject, outdate AS Out, Btype.booktimelimit " +
-						"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype, hassubject Subj " +
-						"WHERE Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type AND " +
+				ps = con.prepareStatement("SELECT Bk.callnumber AS callNum, title, Bcp.copyno, borid, subject, outdate AS Out, Btype.booktimelimit " +
+						"FROM borrowing Bwg, book Bk, borrower Bwr, borrowertype Btype, hassubject Subj, bookcopy Bcp " +
+						"WHERE Bcp.status = 'out' AND Bcp.copyno = Bwg.copyno AND Bcp.callnumber = Bwg.callnumber AND Bwg.bid = Bwr.bid AND Bk.callNumber = Bwg.callNumber AND Bwg.indate IS NULL AND Btype.type = Bwr.type AND " +
 						"UPPER(Subj.subject) LIKE '%" + subject.toUpperCase() + "%' AND Subj.callNumber = Bwg.callNumber " +
 								"ORDER BY Bk.callnumber");
 			}
@@ -156,4 +161,24 @@ public class LibrarianTransactions {
 		return rs;
 	}
 	
+	//Gets list of all fines in the system
+	public ResultSet showAllFine(){
+		ResultSet rs=null;
+		try {
+			Statement stmt = con.createStatement();
+			stmt.execute("alter session set nls_date_format='DD/MM/YYYY'");
+			PreparedStatement ps;
+			ps = con.prepareStatement("SELECT F.fid, amount, TO_CHAR(issueDate, 'YYYY-MM-DD') AS Date_Issued, TO_CHAR(paidDate, 'YYYY-MM-DD') AS Date_Paid, Brr.bid, Bk.title, Bg.borid " +
+										"FROM fine F, borrowing Bg, borrower Brr, book Bk " +
+										"WHERE F.borid = Bg.borid AND Bg.bid = Brr.bid AND Bg.callNumber = Bk.callNumber " +
+										"ORDER BY fid DESC", 
+										ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+			rs = ps.executeQuery();	
+			 
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+
+		return rs;
+	}
 }
