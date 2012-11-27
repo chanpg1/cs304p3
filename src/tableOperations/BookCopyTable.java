@@ -65,6 +65,7 @@ public class BookCopyTable
 		catch (SQLException ex)
 		{
 		    System.out.println("Message: " + ex.getMessage());
+		    ex.printStackTrace();
 		    try 
 		    {
 			// undo the insert
@@ -150,7 +151,7 @@ public class BookCopyTable
 		catch (SQLException ex)
 		{
 		    System.out.println("Message: " + ex.getMessage());
-		    
+		    ex.printStackTrace();
 		    try 
 		    {
 			con.rollback();	

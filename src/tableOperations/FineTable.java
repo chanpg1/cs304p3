@@ -69,6 +69,7 @@ public class FineTable
  		catch (SQLException ex)
  		{
  			System.out.println("Message: " + ex.getMessage());
+ 			ex.printStackTrace();
  			try 
  			{
  				// undo the insert

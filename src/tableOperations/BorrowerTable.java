@@ -73,6 +73,7 @@ public class BorrowerTable
  		catch (SQLException ex)
  		{
  			System.out.println("Message: " + ex.getMessage());
+ 			ex.printStackTrace();
  			try 
  			{
  				// undo the insert

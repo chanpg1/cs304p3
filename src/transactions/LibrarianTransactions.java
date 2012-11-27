@@ -181,4 +181,40 @@ public class LibrarianTransactions {
 
 		return rs;
 	}
+	
+	//Gets list of all books in the system
+	public ResultSet showAllBooks(){
+		ResultSet rs=null;
+		try {				
+			Statement stmt = con.createStatement();
+			PreparedStatement ps;
+			ps = con.prepareStatement("SELECT * " +
+										"FROM book ",
+										ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+			rs = ps.executeQuery();	
+			 
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+
+		return rs;
+	}
+	
+	//Gets list of all borrowers in the system
+	public ResultSet showAllBorrowers(){
+		ResultSet rs=null;
+		try {				
+			Statement stmt = con.createStatement();
+			PreparedStatement ps;
+			ps = con.prepareStatement("SELECT * " +
+										"FROM borrower ",
+										ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+			rs = ps.executeQuery();	
+			 
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+
+		return rs;
+	}
 }

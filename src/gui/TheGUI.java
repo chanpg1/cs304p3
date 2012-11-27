@@ -44,6 +44,7 @@ public class TheGUI implements ActionListener {
     private JPanel librarianPanel;
     private JPanel clerkPanel;
     private JPanel borrowerPanel;
+    private JPanel adminPanel;
     private JTable table;
 	private JTable table2;
 	private JTable table3;
@@ -57,6 +58,7 @@ public class TheGUI implements ActionListener {
     private LibrarianTransactions libTrans;
     private BorrowerTransactions borTrans;
     private ClerkTransactions clkTrans;
+    private AdminTransactions admTrans;
     
     //Constants
     private final static int DAY_IN_MILLISECS = 1000 * 60 * 60 * 24; //number of milliseconds in a day, used for computing due date with Java Date object
@@ -198,6 +200,7 @@ public class TheGUI implements ActionListener {
       libTrans = new LibrarianTransactions(con);
       borTrans = new BorrowerTransactions(con);
       clkTrans = new ClerkTransactions(con);
+      admTrans = new AdminTransactions(con);
 	}
 	else
 	{
@@ -225,16 +228,19 @@ public class TheGUI implements ActionListener {
     {
 		
 		//Create the main containers
-		mainWindow = new MainFrame("The Window");
+		mainWindow = new MainFrame("CS304 AMAZING DB APP");
         contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         tabbedPane = new JTabbedPane();        
         librarianPanel = new JPanel();
-        librarianPanel.setLayout(new BoxLayout(librarianPanel, BoxLayout.Y_AXIS));
+        librarianPanel.setLayout(new GridLayout(0,2));
+        //librarianPanel.setLayout(new BoxLayout(librarianPanel, BoxLayout.Y_AXIS));
         clerkPanel = new JPanel();
-        clerkPanel.setLayout(new BoxLayout(clerkPanel, BoxLayout.Y_AXIS));
+        clerkPanel.setLayout(new GridLayout(0,2));
         borrowerPanel = new JPanel();
-        borrowerPanel.setLayout(new BoxLayout(borrowerPanel, BoxLayout.Y_AXIS));
+        borrowerPanel.setLayout(new GridLayout(0,2));
+        adminPanel = new JPanel();
+        adminPanel.setLayout(new GridLayout(0,2));
         tableScrollPane = new JScrollPane();
 		tableScrollPane2 = new JScrollPane();
 		tableScrollPane3 = new JScrollPane();
@@ -255,11 +261,13 @@ public class TheGUI implements ActionListener {
         createLibrarianPanel();
         createClerkPanel();
         createBorrowerPanel();
+        createAdminPanel();
         
         //Create the tabs        
         tabbedPane.addTab("Librarian", icon, librarianPanel, "Librarian Transactions");
         tabbedPane.addTab("Clerk", icon, clerkPanel, "Clerk Transactions");
         tabbedPane.addTab("Borrower", icon, borrowerPanel, "Borrower Transactions");
+        tabbedPane.addTab("Admin", icon, adminPanel, "Admin Operations");
         contentPanel.add(tabbedPane);
         contentPanel.add(tablePanel);         
 		contentPanel.add(tablePanel2);
@@ -549,7 +557,7 @@ public class TheGUI implements ActionListener {
 							JOptionPane.showMessageDialog(null, message, "Emails Sent", JOptionPane.INFORMATION_MESSAGE);
 						}					
 						else if(result == JOptionPane.NO_OPTION){
-							JOptionPane.showMessageDialog(null, message, "Click table rows to send individual emails", JOptionPane.INFORMATION_MESSAGE);
+							JOptionPane.showMessageDialog(null, "Click table rows to send individual emails", "Info", JOptionPane.INFORMATION_MESSAGE);
 						}
 		    
 			     }			    
@@ -831,7 +839,7 @@ public class TheGUI implements ActionListener {
 					result = JOptionPane.showConfirmDialog(null, myPanel, "Pay Fine", JOptionPane.OK_CANCEL_OPTION);
 				}
 				else{
-					JOptionPane.showMessageDialog(null, "Please pay up before we steal Christmas.\nAnd burn your house.");
+					JOptionPane.showMessageDialog(null, "Please pay up before we air-drop Andy on your house.");
 				}
 
 			     try{
@@ -937,6 +945,8 @@ public class TheGUI implements ActionListener {
     	JButton printBorrowingsButton = new JButton("Print all borrowings");
     	JButton getPopularBooksButton = new JButton("Show popular books");
     	JButton showAllFineButton = new JButton("Show All Fines");
+    	JButton showAllBooksButton = new JButton("Show all books");
+    	JButton showAllBorrowersButton = new JButton("Show all Borrowers");
     	
     	//add listener for Add Book button
     	addBookButton.addActionListener(new ActionListener()
@@ -1137,12 +1147,240 @@ public class TheGUI implements ActionListener {
 				    	System.out.println("Message: " + ex.getMessage());
 		}}});
     	
-		librarianPanel.add(showAllFineButton);
+    	//add listener for Show All Books button
+    	showAllBooksButton.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				ResultSet rs=null;
+				rs=libTrans.showAllBooks();
+				buildTable("List of All Titles in Database", rs);
+			}});
+    	
+    	//add listener for Show All Borrowers button
+    	showAllBorrowersButton.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				ResultSet rs=null;
+				rs=libTrans.showAllBorrowers();
+				buildTable("List of All Borrowers in Database", rs);
+			}});	    	
+		    	
     	librarianPanel.add(addBookButton);
     	librarianPanel.add(printBorrowingsButton);
     	librarianPanel.add(getPopularBooksButton);
+    	librarianPanel.add(showAllFineButton);
+    	librarianPanel.add(showAllBooksButton);
+    	librarianPanel.add(showAllBorrowersButton);
     }
     
+    public void createAdminPanel(){
+    	JButton createAllTblAndSeqButton = new JButton("CREATE all tables and sequences");
+    	JButton dropAllTblAndSeqButton = new JButton("DROP all tables and sequences");
+    	JButton clearAllTblButton = new JButton("CLEAR all tables");
+    	JButton resetAllSeqButton = new JButton("RESET all sequences");
+    	JButton seedAllTblButton = new JButton("SEED all tables");
+    	
+    	//add listener for create tables and sequences button
+    	createAllTblAndSeqButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				boolean created = false; 
+
+		
+			     JPanel myPanel = new JPanel();
+			     myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			     myPanel.add(new JLabel("Create a new set of empty tables and sequences?"));
+			     myPanel.add(new JLabel("(will return error and roll back if tables/sequences already exist)"));
+			     myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+
+			     int result = JOptionPane.showConfirmDialog(null, myPanel, "Confirmation", JOptionPane.YES_NO_OPTION);
+			     try{
+				     if (result == JOptionPane.YES_OPTION) {
+				    	 created = admTrans.createAllTblAndSeq();
+				     }
+				     else{return;}
+				     if(created){
+					     Statement stmt1 = con.createStatement();
+					     ResultSet rs1 = stmt1.executeQuery("SELECT * FROM book");
+					     Statement stmt2 = con.createStatement();
+					     ResultSet rs2 = stmt2.executeQuery("SELECT * FROM borrower");
+					     Statement stmt3 = con.createStatement();
+					     ResultSet rs3 = stmt3.executeQuery("SELECT * FROM borrowing");
+					     buildThreeTables("Books Table", "Borrower Table", "Borrowing Table", rs1, rs2, rs3);
+					     stmt1.close();
+					     stmt2.close();
+					     stmt3.close();
+					     JOptionPane.showMessageDialog(null, "New tables and sequences created successfully", "Operation successful", JOptionPane.INFORMATION_MESSAGE);
+				     }
+				     else{
+				    	 JOptionPane.showMessageDialog(null, "Failed to create new tables and sequences", "Operation failed", JOptionPane.WARNING_MESSAGE);
+				     }
+
+			     }
+			      	catch (SQLException ex) {
+			    	 JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+			    	 System.out.println("Message: " + ex.getMessage());
+
+				        try 
+					    {
+				        	con.rollback();	
+					    }
+					    catch (SQLException ex2)
+					    {
+					    	JOptionPane.showMessageDialog(null, "SQL Error:\n " + ex2.getMessage() + "\nPlease try again", "Error Detected", JOptionPane.ERROR_MESSAGE);
+					    	System.out.println("Message: " + ex2.getMessage());
+					    	System.exit(-1);		
+					    }
+				}
+				 
+			}
+          });
+    	
+    	//add listener for drop tables and sequences button
+    	dropAllTblAndSeqButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				boolean dropped = false; 
+		
+			    JPanel myPanel = new JPanel();
+			    myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			    myPanel.add(new JLabel("Clear and drop ALL tables and sequences?"));
+			    myPanel.add(new JLabel("(will roll back on error)"));
+			    myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+	
+			    int result = JOptionPane.showConfirmDialog(null, myPanel, "Confirmation", JOptionPane.YES_NO_OPTION);
+	
+			    if (result == JOptionPane.YES_OPTION) {
+			    	dropped = admTrans.dropAllTblAndSeq();
+			    }
+			    else{return;}
+			    if(dropped){
+			    	JOptionPane.showMessageDialog(null, "All tables and sequences dropped successfully", "Operation successful", JOptionPane.INFORMATION_MESSAGE);
+			    }
+			    else{
+			    	JOptionPane.showMessageDialog(null, "Failed to drop tables and sequences", "Operation failed", JOptionPane.WARNING_MESSAGE);
+			    }     
+				 
+			}
+        });
+    	
+    	//add listener for clear tables and sequences button
+    	clearAllTblButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				boolean cleared = false; 
+		
+			    JPanel myPanel = new JPanel();
+			    myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			    myPanel.add(new JLabel("Clear ALL tables?"));
+			    myPanel.add(new JLabel("(will roll back on error)"));
+			    myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+	
+			    int result = JOptionPane.showConfirmDialog(null, myPanel, "Confirmation", JOptionPane.YES_NO_OPTION);
+	
+			    if (result == JOptionPane.YES_OPTION) {
+			    	cleared = admTrans.clearAllTables();
+			    }
+			    else{return;}
+			    if(cleared){
+			    	JOptionPane.showMessageDialog(null, "All tables cleared successfully", "Operation successful", JOptionPane.INFORMATION_MESSAGE);
+			    }
+			    else{
+			    	JOptionPane.showMessageDialog(null, "Failed to clear tables", "Operation failed", JOptionPane.WARNING_MESSAGE);
+			    }     
+				 
+			}
+        });
+    	
+    	//add listener for reset sequences button
+    	resetAllSeqButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				boolean reset = false; 
+		
+			    JPanel myPanel = new JPanel();
+			    myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));
+			    myPanel.add(new JLabel("Reset ALL sequences?"));
+			    myPanel.add(new JLabel("(will roll back on error)"));
+			    myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+	
+			    int result = JOptionPane.showConfirmDialog(null, myPanel, "Confirmation", JOptionPane.YES_NO_OPTION);
+	
+			    if (result == JOptionPane.YES_OPTION) {
+			    	reset = admTrans.resetAllSequences();
+			    }
+			    else{return;}
+			    if(reset){
+			    	JOptionPane.showMessageDialog(null, "Successfully reset all sequences", "Operation successful", JOptionPane.INFORMATION_MESSAGE);
+			    }
+			    else{
+			    	JOptionPane.showMessageDialog(null, "Failed to reset sequences", "Operation failed", JOptionPane.WARNING_MESSAGE);
+			    }     
+				 
+			}
+        });
+    	
+    	//add listener for seed tables button
+    	seedAllTblButton.addActionListener(new ActionListener()
+        {            
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+
+				boolean seeded = false; 
+		
+			    JTextField numBorrowers = new JTextField(5);
+			    JTextField numBooks = new JTextField(5);			    
+				JPanel myPanel = new JPanel();
+			    
+			    myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.Y_AXIS));			    
+			    myPanel.add(new JLabel("Number of borrowers to generate: "));
+			    myPanel.add(numBorrowers);
+			    myPanel.add(new JLabel("Number of books to generate: "));
+			    myPanel.add(numBooks);
+			    myPanel.add(Box.createHorizontalStrut(15)); // a spacer
+			    myPanel.add(new JLabel("NOTE: SEEDING TABLE WILL RESET ALL SEQUENCES AND REMOVE ALL PRESENT DATA"));
+	
+			    int result = JOptionPane.showConfirmDialog(null, myPanel, "Enter parameters for seeding", JOptionPane.YES_NO_OPTION);
+	
+			    if (result == JOptionPane.YES_OPTION && Integer.parseInt(numBorrowers.getText()) > 0) {
+			    	//minus 1 from numBorrowers because one special borrower will be added by hardcode
+			    	seeded = admTrans.seedAllTables(Integer.parseInt(numBorrowers.getText())-1, Integer.parseInt(numBooks.getText()));
+			    }
+			    else if(result == JOptionPane.NO_OPTION){
+			    	return;
+			    }
+			    else if(Integer.parseInt(numBorrowers.getText()) <= 0){
+			    	JOptionPane.showMessageDialog(null, "Number of Borrowers must be greater than 0", "Invalid input", JOptionPane.WARNING_MESSAGE);
+			    }
+			    else{return;}
+			    if(seeded){
+			    	JOptionPane.showMessageDialog(null, "Successfully seeded all tables", "Operation successful", JOptionPane.INFORMATION_MESSAGE);
+			    }
+			    else{
+			    	JOptionPane.showMessageDialog(null, "Failed to seed tables", "Operation failed", JOptionPane.WARNING_MESSAGE);
+			    }     
+				 
+			}
+        });
+    	
+		adminPanel.add(createAllTblAndSeqButton);
+    	adminPanel.add(dropAllTblAndSeqButton);
+    	adminPanel.add(clearAllTblButton);
+    	adminPanel.add(resetAllSeqButton);
+    	adminPanel.add(seedAllTblButton);
+    }
     /*Helper for printBorrowingsButton: Converts the resultSet from libTrans.generateBorrowingsReport() into a table model*/
     DefaultTableModel borrowingsRSToTableModel(DefaultTableModel model,ResultSet row) throws SQLException
     {    	   	
